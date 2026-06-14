@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Digitization · Project Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Geist:wght@400;450;500;600;700&family=Geist+Mono:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --canvas: #fbfaf7;
+    --surface: #ffffff;
+    --ink: #1c1b19;
+    --ink-soft: #6b6a65;
+    --ink-faint: #a6a49b;
+    --line: #ecebe4;
+    --line-strong: #dddbd1;
+    --accent: #2e3a8c;
+    --accent-soft: #eceffa;
+
+    --web: #3b5ba9;   --web-bg: #edf1fb;
+    --auto: #6d4aa8;  --auto-bg: #f2ecfb;
+    --dash: #3f7d5e;  --dash-bg: #eaf3ed;
+
+    --hi: #b23a48;    --hi-bg: #fbecee;
+    --md: #a9742e;    --md-bg: #faf1e1;
+    --lo: #7a7a72;    --lo-bg: #f0efe9;
+
+    --radius: 16px;
+    --radius-sm: 11px;
+    --shadow-sm: 0 1px 2px rgba(28,27,25,.05);
+    --shadow: 0 1px 3px rgba(28,27,25,.05), 0 10px 30px rgba(28,27,25,.06);
+    --mono: "Geist Mono", ui-monospace, "SF Mono", monospace;
+    --display: "Fraunces", Georgia, serif;
+    --sans: "Geist", system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--canvas); color: var(--ink); font-family: var(--sans);
+    font-weight: 450; line-height: 1.5; -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 36px 24px 96px; }
+  ::selection { background: var(--accent-soft); }
+
+  /* ---------- masthead ---------- */
+  header.top { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 30px; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; display: inline-flex; align-items: center; gap: 8px;
+  }
+  .eyebrow::before { content: ""; width: 14px; height: 1.5px; background: var(--accent); display: inline-block; }
+  .brand h1 {
+    font-family: var(--display); font-optical-sizing: auto; font-weight: 500; font-size: 40px;
+    letter-spacing: -.015em; margin: 10px 0 4px; line-height: 1;
+  }
+  .brand p { margin: 0; color: var(--ink-soft); font-size: 14px; max-width: 46ch; }
+  .head-actions { display: flex; gap: 10px; align-items: center; }
+
+  button { font-family: var(--sans); cursor: pointer; border: none; color: inherit; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500;
+    padding: 11px 17px; border-radius: var(--radius-sm); transition: transform .14s ease, background .14s ease, border-color .14s ease; }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btn-primary { background: var(--accent); color: #fff; box-shadow: var(--shadow-sm); }
+  .btn-primary:hover { background: #25307a; transform: translateY(-1px); }
+  .btn-ghost { background: var(--surface); border: 1px solid var(--line-strong); }
+  .btn-ghost:hover { border-color: var(--ink-faint); }
+  .btn svg { width: 16px; height: 16px; }
+
+  .sync { display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono);
+    font-size: 11px; letter-spacing: .04em; color: var(--ink-faint); padding: 0 4px; }
+  .sync .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-faint); flex: none; }
+  .sync.synced .dot { background: var(--dash); }
+  .sync.local .dot { background: var(--md); }
+  @keyframes beat { 0%{box-shadow:0 0 0 0 rgba(63,125,94,.5);} 70%{box-shadow:0 0 0 6px rgba(63,125,94,0);} 100%{box-shadow:0 0 0 0 rgba(63,125,94,0);} }
+  .sync .dot.beat { animation: beat 1s ease; }
+
+  /* ---------- overview ---------- */
+  .overview { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 14px; }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow-sm); }
+  .stat .label { font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; }
+  .stat .num { font-family: var(--display); font-weight: 500; font-size: 38px; line-height: 1; margin-top: 10px; letter-spacing: -.02em; font-optical-sizing: auto; }
+  .stat .sub { font-size: 12.5px; color: var(--ink-soft); margin-top: 5px; }
+
+  .typebar { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 18px 20px; margin-bottom: 28px; }
+  .typebar .label { font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; margin-bottom: 12px; }
+  .bar { display: flex; height: 10px; border-radius: 6px; overflow: hidden; background: var(--line); }
+  .bar span { display: block; height: 100%; transition: width .6s cubic-bezier(.4,0,.2,1); }
+  .bar-key { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 13px; font-size: 13px; color: var(--ink-soft); }
+  .bar-key b { font-family: var(--mono); color: var(--ink); font-weight: 600; }
+  .swatch { width: 9px; height: 9px; border-radius: 3px; display: inline-block; margin-right: 7px; vertical-align: middle; }
+
+  /* ---------- controls ---------- */
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .chip { font-family: var(--sans); font-size: 13px; font-weight: 500; padding: 8px 14px; border-radius: 999px;
+    background: var(--surface); border: 1px solid var(--line-strong); color: var(--ink-soft); transition: .14s; display: inline-flex; align-items: center; gap: 8px; }
+  .chip:hover { border-color: var(--ink-faint); color: var(--ink); }
+  .chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .chip .c { font-family: var(--mono); font-size: 11px; opacity: .65; }
+  .chip[aria-pressed="true"] .c { opacity: .85; }
+
+  .filters { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+  .search { position: relative; flex: 1; min-width: 220px; }
+  .search svg { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--ink-faint); pointer-events: none; }
+  .filters input, .filters select { font-family: var(--sans); font-size: 13.5px; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px; padding: 9px 12px; outline: none; }
+  .filters .search input { width: 100%; padding-left: 42px; }
+  .filters input:hover, .filters select:hover { border-color: var(--ink-faint); }
+  .filters input::placeholder { color: var(--ink-faint); }
+  .filters select:focus, .filters input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .clearbtn { font-size: 13px; color: var(--ink-soft); background: none; padding: 8px; text-decoration: underline; text-underline-offset: 3px; }
+
+  /* ---------- list ---------- */
+  .cols { display: grid; grid-template-columns: 1fr 130px 168px 110px 40px; gap: 14px; padding: 0 18px 9px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); }
+  .list { display: flex; flex-direction: column; gap: 9px; }
+  .row { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm);
+    padding: 15px 18px; display: grid; grid-template-columns: 1fr 130px 168px 110px 40px; gap: 14px; align-items: center;
+    transition: border-color .14s, box-shadow .14s; animation: rise .34s ease both; }
+  .row:hover { border-color: var(--line-strong); box-shadow: var(--shadow); }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .row .name { font-weight: 600; font-size: 15.5px; letter-spacing: -.005em; }
+  .row .dept { font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; }
+  .row .dept .lbl { font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); margin-right: 6px; }
+
+  .pill { font-size: 12px; font-weight: 500; padding: 6px 11px; border-radius: 999px; white-space: nowrap; display: inline-flex; align-items: center; gap: 7px; }
+  .pill .swatch { margin: 0; }
+  .type-web { background: var(--web-bg); color: var(--web); }
+  .type-auto { background: var(--auto-bg); color: var(--auto); }
+  .type-dash { background: var(--dash-bg); color: var(--dash); }
+  .prio-high { background: var(--hi-bg); color: var(--hi); }
+  .prio-medium { background: var(--md-bg); color: var(--md); }
+  .prio-low { background: var(--lo-bg); color: var(--lo); }
+
+  select.status-select { font-family: var(--sans); font-size: 13px; font-weight: 500; border: 1px solid var(--line-strong);
+    border-radius: 999px; padding: 7px 12px; background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a6a49b' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;
+    color: var(--ink); cursor: pointer; outline: none; -webkit-appearance: none; appearance: none; padding-right: 28px; width: 100%; }
+  select.status-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .rowtools { display: flex; gap: 2px; justify-content: flex-end; }
+  .icon-btn { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 9px; background: transparent; color: var(--ink-faint); transition: .12s; }
+  .icon-btn:hover { background: var(--canvas); color: var(--ink); }
+  .icon-btn.danger:hover { background: var(--hi-bg); color: var(--hi); }
+  .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .icon-btn svg { width: 16px; height: 16px; }
+
+  .placeholder { text-align: center; padding: 64px 22px; color: var(--ink-soft); background: var(--surface);
+    border: 1px dashed var(--line-strong); border-radius: var(--radius); }
+  .placeholder h3 { font-family: var(--display); font-weight: 500; color: var(--ink); margin: 0 0 8px; font-size: 22px; }
+  .placeholder p { margin: 0 0 18px; font-size: 14px; }
+
+  /* ---------- slide-over ---------- */
+  .scrim { position: fixed; inset: 0; background: rgba(28,27,25,.38); backdrop-filter: blur(2px);
+    opacity: 0; pointer-events: none; transition: .22s; z-index: 40; }
+  .scrim.open { opacity: 1; pointer-events: auto; }
+  .sheet { position: fixed; top: 0; right: 0; height: 100%; width: 432px; max-width: 92vw; background: var(--surface);
+    box-shadow: -16px 0 50px rgba(28,27,25,.2); transform: translateX(100%); transition: transform .3s cubic-bezier(.4,0,.2,1);
+    z-index: 50; display: flex; flex-direction: column; }
+  .sheet.open { transform: none; }
+  .sheet-head { padding: 26px 26px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+  .sheet-head h2 { font-family: var(--display); font-weight: 500; font-size: 24px; margin: 0; letter-spacing: -.01em; }
+  .sheet-body { padding: 22px 26px; overflow-y: auto; flex: 1; }
+  .field { margin-bottom: 18px; }
+  .field label { display: block; font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); font-weight: 600; margin-bottom: 8px; }
+  .field input, .field select { width: 100%; font-family: var(--sans); font-size: 14.5px; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--line-strong); border-radius: 11px; padding: 12px 13px; outline: none; }
+  .field input:focus, .field select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .segment { display: flex; gap: 8px; }
+  .segment button { flex: 1; font-size: 13.5px; font-weight: 500; padding: 11px 8px; border-radius: 11px;
+    border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink-soft); transition: .12s; }
+  .segment button:hover { border-color: var(--ink-faint); }
+  .segment button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .sheet-foot { padding: 18px 26px; border-top: 1px solid var(--line); display: flex; gap: 10px; }
+  .err { color: var(--hi); font-size: 12.5px; margin-top: 6px; display: none; }
+  .err.show { display: block; }
+
+  .toast { position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--ink); color: #fff;
+    font-size: 13.5px; padding: 11px 20px; border-radius: 999px; opacity: 0; pointer-events: none; transition: .26s; z-index: 60; box-shadow: var(--shadow); }
+  .toast.show { opacity: 1; transform: translateX(-50%); }
+
+  @media (max-width: 760px) {
+    .brand h1 { font-size: 34px; }
+    .overview { grid-template-columns: repeat(2, 1fr); }
+    .cols { display: none; }
+    .row { grid-template-columns: 1fr auto; row-gap: 12px; padding: 16px; }
+    .row .meta-type { grid-column: 1; } .row .meta-prio { grid-column: 2; justify-self: end; }
+    .row .status-cell { grid-column: 1 / -1; } .row .status-cell select { width: 100%; }
+    .rowtools { grid-column: 1 / -1; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <span class="eyebrow">Digitization Team</span>
+      <h1>Project Tracker</h1>
+      <p>A live register of every web app, automation, and dashboard the team is building.</p>
+    </div>
+    <div class="head-actions">
+      <span class="sync" id="sync"><span class="dot" id="syncDot"></span><span id="syncText">connecting…</span></span>
+      <button class="btn btn-ghost" id="refreshBtn" title="Pull the latest">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Refresh
+      </button>
+      <button class="btn btn-primary" id="addBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        New project
+      </button>
+    </div>
+  </header>
+
+  <section class="overview" id="overview"></section>
+
+  <div class="typebar">
+    <div class="label">Portfolio mix</div>
+    <div class="bar" id="typeBar"></div>
+    <div class="bar-key" id="typeKey"></div>
+  </div>
+
+  <div class="chips" id="statusChips"></div>
+
+  <div class="filters">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" id="search" placeholder="Search projects or departments…" />
+    </div>
+    <select id="fType"><option value="">All types</option><option value="web">Web app</option><option value="auto">Automation</option><option value="dash">Dashboard</option></select>
+    <select id="fPrio"><option value="">Any priority</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
+    <select id="fDept"><option value="">Any department</option></select>
+    <button class="clearbtn" id="clearFilters">Reset</button>
+  </div>
+
+  <div class="cols">
+    <span>Project</span><span>Type</span><span>Status</span><span>Priority</span><span></span>
+  </div>
+  <div class="list" id="list"></div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="sheet-head">
+    <h2 id="sheetTitle">New project</h2>
+    <button class="icon-btn" id="closeSheet" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  </div>
+  <div class="sheet-body">
+    <div class="field">
+      <label for="fName">Project name</label>
+      <input type="text" id="fName" placeholder="e.g. Invoice approval automation" autocomplete="off" />
+      <div class="err" id="errName">Give the project a name to continue.</div>
+    </div>
+    <div class="field">
+      <label>Type</label>
+      <div class="segment" id="segType">
+        <button type="button" data-v="web" aria-pressed="true">Web app</button>
+        <button type="button" data-v="auto" aria-pressed="false">Automation</button>
+        <button type="button" data-v="dash" aria-pressed="false">Dashboard</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="fFormStatus">Status</label>
+      <select id="fFormStatus"></select>
+    </div>
+    <div class="field">
+      <label>Priority</label>
+      <div class="segment" id="segPrio">
+        <button type="button" data-v="high" aria-pressed="false">High</button>
+        <button type="button" data-v="medium" aria-pressed="true">Medium</button>
+        <button type="button" data-v="low" aria-pressed="false">Low</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="fFormDept">Requesting department / stakeholder</label>
+      <input type="text" id="fFormDept" placeholder="e.g. Finance, Operations, HR…" autocomplete="off" />
+    </div>
+  </div>
+  <div class="sheet-foot">
+    <button class="btn btn-ghost" id="cancelSheet">Cancel</button>
+    <button class="btn btn-primary" id="saveSheet" style="flex:1.5; justify-content:center">Save project</button>
+  </div>
+</aside>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STATUSES = ["Backlog", "In progress", "Testing", "Deployed", "On hold"];
+const TYPE_LABEL = { web: "Web app", auto: "Automation", dash: "Dashboard" };
+const TYPE_CLASS = { web: "type-web", auto: "type-auto", dash: "type-dash" };
+const TYPE_COLOR = { web: "var(--web)", auto: "var(--auto)", dash: "var(--dash)" };
+const PRIO_LABEL = { high: "High", medium: "Medium", low: "Low" };
+const LS_KEY = "digitization-tracker-v1";
+const API_TIMEOUT_MS = 3500;
+
+const $ = (id) => document.getElementById(id);
+let projects = [];
+let editingId = null;
+let form = { type: "web", prio: "medium" };
+let activeStatus = "";
+
+function fetchWithTimeout(url, options = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
+/* ---------- storage: API → device → memory ---------- */
+const Store = {
+  mode: null,           // 'api' | 'local' | 'memory'
+  mem: [],
+  loadCached() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      this.mode = "local";
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {}
+    this.mode = "memory";
+    return this.mem;
+  },
+  async loadRemote() {
+    try {
+      const r = await fetchWithTimeout("/api/projects", { headers: { "accept": "application/json" } });
+      if (r.ok) {
+        const d = await r.json();
+        const remoteProjects = Array.isArray(d.projects) ? d.projects : [];
+        try { localStorage.setItem(LS_KEY, JSON.stringify(remoteProjects)); } catch (e) {}
+        this.mode = "api";
+        return remoteProjects;
+      }
+    } catch (e) {}
+    return null;
+  },
+  async save(list) {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(list)); } catch (e) {}
+    if (this.mode === "api") {
+      try {
+        const r = await fetchWithTimeout("/api/projects", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ projects: list }) });
+        if (r.ok) return true;
+      } catch (e) {}
+      // fall through if the API became unavailable
+    }
+    if (this.mode === "api" || this.mode === "local") {
+      try { localStorage.setItem(LS_KEY, JSON.stringify(list)); if (this.mode === "api") this.mode = "local"; return true; } catch (e) {}
+    }
+    this.mode = "memory"; this.mem = list; return true;
+  }
+};
+
+function reflectSyncBadge() {
+  const el = $("sync"), dot = $("syncDot"), txt = $("syncText");
+  el.classList.remove("synced", "local");
+  if (Store.mode === "api") { el.classList.add("synced"); txt.textContent = "Synced · shared"; }
+  else if (Store.mode === "local") { el.classList.add("local"); txt.textContent = "Saved on this device"; }
+  else { txt.textContent = "Preview · not saved"; }
+}
+function pulse() { const d = $("syncDot"); d.classList.remove("beat"); void d.offsetWidth; d.classList.add("beat"); }
+
+async function persist() { await Store.save(projects); reflectSyncBadge(); pulse(); }
+
+/* ---------- derived ---------- */
+function counts() {
+  const c = { total: projects.length, byStatus: {}, byType: { web:0, auto:0, dash:0 }, active: 0 };
+  STATUSES.forEach(s => c.byStatus[s] = 0);
+  projects.forEach(p => {
+    c.byStatus[p.status] = (c.byStatus[p.status]||0) + 1;
+    c.byType[p.type] = (c.byType[p.type]||0) + 1;
+    if (p.status === "In progress" || p.status === "Testing") c.active++;
+  });
+  return c;
+}
+
+/* ---------- render ---------- */
+function renderOverview() {
+  const c = counts();
+  $("overview").innerHTML = `
+    <div class="stat"><div class="label">Total</div><div class="num">${c.total}</div><div class="sub">projects on the books</div></div>
+    <div class="stat"><div class="label">Active</div><div class="num" style="color:var(--accent)">${c.active}</div><div class="sub">in progress or testing</div></div>
+    <div class="stat"><div class="label">Deployed</div><div class="num" style="color:var(--dash)">${c.byStatus["Deployed"]||0}</div><div class="sub">shipped & live</div></div>
+    <div class="stat"><div class="label">Backlog</div><div class="num" style="color:var(--ink-faint)">${c.byStatus["Backlog"]||0}</div><div class="sub">waiting for pickup</div></div>`;
+
+  const total = c.total || 1;
+  $("typeBar").innerHTML = ["web","auto","dash"].map(t => `<span style="width:${c.byType[t]/total*100}%;background:${TYPE_COLOR[t]}"></span>`).join("");
+  $("typeKey").innerHTML = ["web","auto","dash"].map(t => `<span><span class="swatch" style="background:${TYPE_COLOR[t]}"></span>${TYPE_LABEL[t]} <b>${c.byType[t]}</b></span>`).join("");
+}
+
+function renderChips() {
+  const c = counts();
+  const mk = (val, label, n) => `<button class="chip" data-s="${val}" aria-pressed="${activeStatus===val}">${label}<span class="c">${n}</span></button>`;
+  $("statusChips").innerHTML = mk("", "All", c.total) + STATUSES.map(s => mk(s, s, c.byStatus[s]||0)).join("");
+  document.querySelectorAll("#statusChips .chip").forEach(b => b.onclick = () => { activeStatus = b.dataset.s; renderChips(); renderList(); });
+}
+
+function refreshDeptFilter() {
+  const depts = [...new Set(projects.map(p => p.dept).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const cur = $("fDept").value;
+  $("fDept").innerHTML = `<option value="">Any department</option>` + depts.map(d => `<option value="${escAttr(d)}">${esc(d)}</option>`).join("");
+  if (depts.includes(cur)) $("fDept").value = cur;
+}
+
+function filtered() {
+  const q = $("search").value.trim().toLowerCase();
+  const ft = $("fType").value, fp = $("fPrio").value, fd = $("fDept").value;
+  return projects
+    .filter(p => (!q || p.name.toLowerCase().includes(q) || (p.dept||"").toLowerCase().includes(q))
+      && (!ft || p.type === ft) && (!activeStatus || p.status === activeStatus)
+      && (!fp || p.prio === fp) && (!fd || p.dept === fd))
+    .sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0));
+}
+
+function renderList() {
+  const list = $("list");
+  if (projects.length === 0) {
+    list.innerHTML = `<div class="placeholder"><h3>Nothing tracked yet</h3><p>Add the first build, automation, or dashboard and it'll show up here for the whole team.</p><button class="btn btn-primary" onclick="openSheet()" style="display:inline-flex">Add a project</button></div>`;
+    return;
+  }
+  const items = filtered();
+  if (items.length === 0) {
+    list.innerHTML = `<div class="placeholder"><h3>No matches</h3><p>Nothing fits the current filters. Try resetting them.</p></div>`;
+    return;
+  }
+  list.innerHTML = items.map(p => `
+    <div class="row">
+      <div><div class="name">${esc(p.name)}</div><div class="dept"><span class="lbl">Requested by</span>${esc(p.dept) || "—"}</div></div>
+      <div class="meta-type"><span class="pill ${TYPE_CLASS[p.type]}"><span class="swatch" style="background:${TYPE_COLOR[p.type]}"></span>${TYPE_LABEL[p.type]}</span></div>
+      <div class="status-cell"><select class="status-select" aria-label="Status" onchange="changeStatus('${p.id}', this.value)">${STATUSES.map(s => `<option ${s===p.status?"selected":""}>${s}</option>`).join("")}</select></div>
+      <div class="meta-prio"><span class="pill prio-${p.prio}">${PRIO_LABEL[p.prio]}</span></div>
+      <div class="rowtools">
+        <button class="icon-btn" title="Edit" aria-label="Edit" onclick="openSheet('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button>
+        <button class="icon-btn danger" title="Delete" aria-label="Delete" onclick="removeProject('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+      </div>
+    </div>`).join("");
+}
+
+function renderAll() { renderOverview(); renderChips(); refreshDeptFilter(); renderList(); }
+function esc(s){ return (s||"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function escAttr(s){ return esc(s); }
+
+/* ---------- actions ---------- */
+async function changeStatus(id, status) { const p = projects.find(x=>x.id===id); if(!p) return; p.status=status; p.updatedAt=Date.now(); await persist(); renderOverview(); renderChips(); }
+async function removeProject(id) {
+  const p = projects.find(x=>x.id===id); if(!p) return;
+  if (!confirm(`Delete "${p.name}"? This removes it for everyone.`)) return;
+  projects = projects.filter(x=>x.id!==id); await persist(); renderAll(); toast("Project deleted");
+}
+function openSheet(id) {
+  editingId = id || null;
+  if (editingId) {
+    const p = projects.find(x=>x.id===editingId);
+    $("sheetTitle").textContent = "Edit project";
+    $("fName").value = p.name; $("fFormStatus").value = p.status; $("fFormDept").value = p.dept || "";
+    form = { type: p.type, prio: p.prio };
+  } else {
+    $("sheetTitle").textContent = "New project";
+    $("fName").value = ""; $("fFormStatus").value = "Backlog"; $("fFormDept").value = "";
+    form = { type: "web", prio: "medium" };
+  }
+  syncSegments(); $("errName").classList.remove("show");
+  $("scrim").classList.add("open"); $("sheet").classList.add("open");
+  setTimeout(()=>$("fName").focus(), 300);
+}
+function closeSheet() { $("scrim").classList.remove("open"); $("sheet").classList.remove("open"); }
+function syncSegments() {
+  document.querySelectorAll("#segType button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v===form.type));
+  document.querySelectorAll("#segPrio button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v===form.prio));
+}
+async function saveProject() {
+  const name = $("fName").value.trim();
+  if (!name) { $("errName").classList.add("show"); $("fName").focus(); return; }
+  const data = { name, type: form.type, prio: form.prio, status: $("fFormStatus").value, dept: $("fFormDept").value.trim() };
+  if (editingId) { Object.assign(projects.find(x=>x.id===editingId), data, { updatedAt: Date.now() }); }
+  else { projects.unshift({ id: "p_"+Date.now()+"_"+Math.random().toString(36).slice(2,7), ...data, createdAt: Date.now(), updatedAt: Date.now() }); }
+  await persist(); renderAll(); closeSheet(); toast(editingId ? "Project updated" : "Project added");
+}
+
+/* ---------- live helpers ---------- */
+let toastTimer;
+function toast(msg) { const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"), 2200); }
+async function refresh(silent) {
+  const remoteProjects = await Store.loadRemote();
+  if (remoteProjects) projects = remoteProjects;
+  reflectSyncBadge(); renderAll(); pulse(); if(!silent) toast(remoteProjects ? "Pulled the latest" : "Using this device");
+}
+
+/* ---------- wire up ---------- */
+$("addBtn").onclick = () => openSheet();
+$("refreshBtn").onclick = () => refresh(false);
+$("closeSheet").onclick = closeSheet; $("cancelSheet").onclick = closeSheet; $("scrim").onclick = closeSheet;
+$("saveSheet").onclick = saveProject;
+$("clearFilters").onclick = () => { $("search").value=""; $("fType").value=""; $("fPrio").value=""; $("fDept").value=""; activeStatus=""; renderChips(); renderList(); };
+["search","fType","fPrio","fDept"].forEach(id => $(id).addEventListener("input", renderList));
+document.querySelectorAll("#segType button").forEach(b => b.onclick = () => { form.type=b.dataset.v; syncSegments(); });
+document.querySelectorAll("#segPrio button").forEach(b => b.onclick = () => { form.prio=b.dataset.v; syncSegments(); });
+$("fName").addEventListener("keydown", e => { if (e.key==="Enter") saveProject(); });
+document.addEventListener("keydown", e => { if (e.key==="Escape") closeSheet(); });
+
+// status options in the form
+$("fFormStatus").innerHTML = STATUSES.map(s => `<option>${s}</option>`).join("");
+
+// poll for teammates' changes only when synced through the API
+setInterval(() => { if (Store.mode === "api" && !$("sheet").classList.contains("open")) refresh(true); }, 15000);
+
+projects = Store.loadCached();
+reflectSyncBadge();
+renderAll();
+refresh(true);
+</script>
+</body>
+</html>
