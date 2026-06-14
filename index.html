@@ -306,6 +306,19 @@ function fetchWithTimeout(url, options = {}) {
   return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
 }
 
+function newerProject(a, b) {
+  return (a.updatedAt || a.createdAt || 0) >= (b.updatedAt || b.createdAt || 0) ? a : b;
+}
+
+function mergeProjects(localList, remoteList) {
+  const byId = new Map();
+  [...remoteList, ...localList].forEach(project => {
+    if (!project || !project.id) return;
+    byId.set(project.id, byId.has(project.id) ? newerProject(project, byId.get(project.id)) : project);
+  });
+  return [...byId.values()].sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0));
+}
+
 /* ---------- storage: API → device → memory ---------- */
 const Store = {
   mode: null,           // 'api' | 'local' | 'memory'
@@ -334,16 +347,12 @@ const Store = {
   },
   async save(list) {
     try { localStorage.setItem(LS_KEY, JSON.stringify(list)); } catch (e) {}
-    if (this.mode === "api") {
-      try {
-        const r = await fetchWithTimeout("/api/projects", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ projects: list }) });
-        if (r.ok) return true;
-      } catch (e) {}
-      // fall through if the API became unavailable
-    }
-    if (this.mode === "api" || this.mode === "local") {
-      try { localStorage.setItem(LS_KEY, JSON.stringify(list)); if (this.mode === "api") this.mode = "local"; return true; } catch (e) {}
-    }
+    try {
+      const r = await fetchWithTimeout("/api/projects", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ projects: list }) });
+      if (r.ok) { this.mode = "api"; return true; }
+    } catch (e) {}
+    if (this.mode === "api") this.mode = "local";
+    if (this.mode === "local") return true;
     this.mode = "memory"; this.mem = list; return true;
   }
 };
@@ -479,7 +488,12 @@ let toastTimer;
 function toast(msg) { const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"), 2200); }
 async function refresh(silent) {
   const remoteProjects = await Store.loadRemote();
-  if (remoteProjects) projects = remoteProjects;
+  if (remoteProjects) {
+    const merged = mergeProjects(projects, remoteProjects);
+    projects = merged;
+    try { localStorage.setItem(LS_KEY, JSON.stringify(projects)); } catch (e) {}
+    if (JSON.stringify(merged) !== JSON.stringify(remoteProjects)) await Store.save(merged);
+  }
   reflectSyncBadge(); renderAll(); pulse(); if(!silent) toast(remoteProjects ? "Pulled the latest" : "Using this device");
 }
 
